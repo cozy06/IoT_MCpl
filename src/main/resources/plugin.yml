@@ -4,5 +4,3 @@ api-version: 1.19
 main: com.cozy06.Main
 libraries:
   - io.github.monun:kommand-core:2.14.0
-commands:
-  IoT_http:

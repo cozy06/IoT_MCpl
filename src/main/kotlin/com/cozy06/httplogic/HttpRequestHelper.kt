@@ -1,65 +1,58 @@
-package httplogic
+package com.cozy06.httplogic
 
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.plugins.logging.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import kotlinx.serialization.json.Json
-import thingsPost
+import java.io.*
+import java.net.HttpURLConnection
+import java.net.URL
 
 class HttpRequestHelper {
-    companion object {
-        private const val TAG = "RestFulRepository"
-        const val base_url = "http://0.0.0.0:8080"
+    fun SenderWithBody(URL: String, SendData: String): String {
+        val json = """$SendData"""
+        val url = URL("${readURL()}${URL}")
+        val connection = url.openConnection() as HttpURLConnection
+        connection.requestMethod = "POST"
+        connection.doOutput = true
+        connection.setRequestProperty("Content-Type", "application/json")
+        val outputStream: OutputStream = connection.outputStream
+        outputStream.write(json.toByteArray())
+        outputStream.flush()
+        outputStream.close()
+        val responseCode = connection.responseCode
+        println(responseCode)
+        val response = connection.inputStream.bufferedReader().readText()
+        println(response)
+        connection.disconnect()
+        return response
     }
 
-    private val client: HttpClient
-
-    private val json = Json {
-        ignoreUnknownKeys = true // 모델에 없고, json에 있는경우 해당 key 무시
-        prettyPrint = true
-        isLenient = true // "" 따옴표 잘못된건 무시하고 처리
-        encodeDefaults = true //null 인 값도 json에 포함 시킨다.
-    }
-    init {
-        client = HttpClient(CIO) {
-            defaultRequest {
-                header("Accept", "application/json")
-                header("Content-type", "application/json")
-            }
-            install(ContentNegotiation){
-                json(json)
-            }
-            install(HttpTimeout) {
-                requestTimeoutMillis = 10_000L
-                connectTimeoutMillis = 10_000L
-                socketTimeoutMillis = 10_000L
-            }
-            install(Logging) {
-//                logger = object: Logger {
-//                    override fun log(message: String) {
-//                        Log.d(TAG, message)
-//                    }
-//                }
-                level = LogLevel.ALL
-            }
+    fun SenderWithNoBody(URL: String): String? {
+        var response: String? = null
+        try {
+            val url = URL("${readURL()}${URL}")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = false
+            connection.connect()
+            val responseCode = connection.responseCode
+            println(responseCode)
+            response = connection.inputStream.bufferedReader().readText()
+            println(response)
+            connection.disconnect()
+        } catch (e: IOException) {
+            e.printStackTrace()
         }
+        return response
     }
 
-    @Throws
-    suspend fun requestKtorIo_things(product_name: String) =
-        client.post(base_url + "/thingsclick") {
-            contentType(ContentType.Application.Json)
-            setBody(thingsPost(product_name))
-        }.bodyAsText()
+    fun readURL(): String {
 
-    @Throws
-    suspend fun requestKtorIo_IoTList() =
-        client.post(base_url + "/IoTList"){
-        }.bodyAsText()
+        val path = "${System.getProperty("user.dir")}/plugins/IoT/URL.txt"
+
+        val String = FileReader(File(path))
+        val buffer = BufferedReader(String)
+        val temp = buffer.readLine()
+        buffer.close()
+        println(temp.toString())
+
+        return temp.toString()
+    }
 }
